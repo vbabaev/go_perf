@@ -3,7 +3,7 @@ package main
 import (
     "fmt"
     "time"
-    "github.com/vbabaev/stat"
+    "../stat"
 )
 
 var routinesNextId = 0
