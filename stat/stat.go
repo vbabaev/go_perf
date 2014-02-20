@@ -5,7 +5,14 @@ import (
     "io/ioutil"
     "strconv"
     "strings"
+    "os/exec"
+    "bytes"
 )
+
+type Proc struct {
+    name string
+    percentage float32
+}
 
 func GetCPUsageProvider() (func() float64) {
     idle0, total0 := GetCPU()
@@ -75,4 +82,31 @@ func GetMem() (total, free, swap_total, swap_free, cached uint64) {
         }
     }
     return
+}
+
+func GetTopProcs() (s_procs []Proc) {
+    cmd := exec.Command("/bin/ps", "hx", "-ocomm,pcpu", "--sort=pcpu")
+    cmd.Stdin = strings.NewReader("some input")
+    var out bytes.Buffer
+    cmd.Stdout = &out
+    err := cmd.Run()
+    if err != nil {
+        return  
+    } 
+    contents := out.String()
+    lines := strings.Split(string(contents), "\n")
+    procs := 5
+    if len(lines) < procs {
+        procs = len(lines)
+    }
+
+    s_procs = make([]Proc, procs, procs)
+
+    for i := 0; i < procs; i++ {
+        line := lines[len(lines) - i - 2]
+        fields := strings.Fields(line)
+        percentage,_ := strconv.ParseFloat(fields[1], 64)
+        s_procs[i] = Proc{fields[0], float32(percentage)}
+    }
+    return 
 }

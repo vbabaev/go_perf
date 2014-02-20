@@ -16,6 +16,7 @@ type t_routine struct {
 }
 
 func main() {
+    stat.GetTopProcs()
     routines := make([]*t_routine, 0, 20)
     getCpuUsage := stat.GetCPUsageProvider()
     time.Sleep(1 * time.Second)
@@ -32,10 +33,19 @@ func main() {
         fmt.Printf("%s %f %f\n", GetCurrentTimestamp(), pmem, pswap)
     }   
 
+    procs := func () {
+        p_procs := stat.GetTopProcs()
+        for _,proc := range p_procs {
+            fmt.Println(proc.name)
+            // fmt.Printf("%s %f\n", proc.name, proc.percentage)
+        }
+    }   
+
     routines = append(routines, runRoutineWithPeriod(cpu, 1 * time.Second))
     routines = append(routines, runRoutineWithPeriod(mem, 1 * time.Second))
+    routines = append(routines, runRoutineWithPeriod(procs, 5 * time.Second))
     
-    time.Sleep(2 * time.Second)
+    time.Sleep(10 * time.Second)
     for _, r := range routines {
         r.status = false
     }
