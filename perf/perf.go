@@ -137,6 +137,5 @@ func getRoutineId() (result int) {
 }
 
 func GetCurrentTimestamp() string {
-    t := time.Now()
-    return fmt.Sprintf("%.4d-%.2d-%.2d %.2d-%.2d-%.2d", t.Year(), t.Month(), t.Day(), t.Hour(), t.Minute(), t.Second())
+    return fmt.Sprintf("%d", time.Now().Unix())
 }
