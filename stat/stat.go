@@ -10,8 +10,8 @@ import (
 )
 
 type Proc struct {
-    name string
-    percentage float32
+    Name string
+    Percentage float32
 }
 
 func GetCPUsageProvider() (func() float64) {
