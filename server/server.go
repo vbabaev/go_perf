@@ -15,8 +15,9 @@ func read_int32(data []byte) (ret int32) {
 }
 
 func main() {
-	var buf [1024]byte
-	addr, _ := net.ResolveUDPAddr("udp", "146.185.149.162:30003")
+	var buf [4096]byte
+	// addr, _ := net.ResolveUDPAddr("udp", "146.185.149.162:30003")
+	addr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:30003")
 	sock, _ := net.ListenUDP("udp", addr)
 	for {
 		readBytes := 0
@@ -29,13 +30,16 @@ func main() {
 		type_ := read_int32(buf[4:8])
 
 		readBytes = 0
+		var message string = ""
 		for int32(readBytes) < length {
 			sock.SetReadDeadline(time.Now().Add(5 * time.Second))
 			rlen, _, _ := sock.ReadFromUDP(buf[readBytes:])
+			message += string(buf[:rlen])
 			readBytes += rlen
 		}
+		if type_ == 0 {
 
-		fmt.Println(type_)
-		fmt.Println(string(buf[8:]))
+		}
+		fmt.Println(message)
 	}
 }

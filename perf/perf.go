@@ -89,8 +89,8 @@ func main() {
 	}
 
 	send := func() {
-		serverAddr, err := net.ResolveUDPAddr("udp", "146.185.149.162:33333")
-		// serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:30003")
+		// serverAddr, err := net.ResolveUDPAddr("udp", "146.185.149.162:30003")
+		serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:30003")
 		if err != nil {
 			fmt.Println(err)
 			return
