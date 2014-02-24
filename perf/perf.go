@@ -6,6 +6,9 @@ import (
 	"flag"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -118,9 +121,21 @@ func main() {
 	routines = append(routines, runRoutineWithPeriod(cpu, 1*time.Second))
 	routines = append(routines, runRoutineWithPeriod(mem, 1*time.Second))
 	routines = append(routines, runRoutineWithPeriod(procs, 5*time.Second))
-	routines = append(routines, runRoutineWithPeriod(send, 3*time.Second))
+	routines = append(routines, runRoutineWithPeriod(send, 1*time.Second))
 
-	time.Sleep(600 * time.Second)
+	var status bool = true
+
+	for status {
+		signalChannel := make(chan os.Signal, 2)
+		signal.Notify(signalChannel, os.Interrupt, syscall.SIGTERM)
+		sig := <-signalChannel
+		switch sig {
+		case os.Interrupt:
+		case syscall.SIGHUP:
+		case syscall.SIGTERM:
+			status = false
+		}
+	}
 	for _, r := range routines {
 		r.status = false
 	}
