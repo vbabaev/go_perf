@@ -3,6 +3,7 @@ package main
 import (
 	"../stat"
 	"encoding/binary"
+	"flag"
 	"fmt"
 	"net"
 	"time"
@@ -58,6 +59,12 @@ func create_report_message(type_ uint32, message string) report_message {
 }
 
 func main() {
+	var host string
+	var port int
+	flag.StringVar(&host, "h", "localhost", "server's hostname")
+	flag.IntVar(&port, "p", 30000, "server's port name")
+	flag.Parse()
+
 	stat.GetTopProcs()
 	routines := make([]*t_routine, 0, 20)
 	getCpuUsage := stat.GetCPUsageProvider()
@@ -89,8 +96,7 @@ func main() {
 	}
 
 	send := func() {
-		// serverAddr, err := net.ResolveUDPAddr("udp", "146.185.149.162:30003")
-		serverAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:30003")
+		serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 		if err != nil {
 			fmt.Println(err)
 			return
