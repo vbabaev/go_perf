@@ -7,12 +7,19 @@ import (
     "strings"
     "os/exec"
     "bytes"
+    "sort"
 )
 
 type Proc struct {
     Name string
     Percentage float32
 }
+
+type ByPerc []Proc
+
+func (a ByPerc) Len() int           { return len(a) }
+func (a ByPerc) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByPerc) Less(i, j int) bool { return a[i].Percentage > a[j].Percentage }
 
 func GetCPUsageProvider() (func() float64) {
     idle0, total0 := GetCPU()
@@ -84,7 +91,7 @@ func GetMem() (total, free, swap_total, swap_free, cached uint64) {
     return
 }
 
-func GetTopProcs() (s_procs []Proc) {
+func GetTopProcs(count int) (s_procs []Proc) {
     cmd := exec.Command("/bin/ps", "hx", "-ocomm,pcpu", "--sort=pcpu")
     cmd.Stdin = strings.NewReader("some input")
     var out bytes.Buffer
@@ -95,18 +102,35 @@ func GetTopProcs() (s_procs []Proc) {
     } 
     contents := out.String()
     lines := strings.Split(string(contents), "\n")
-    procs := 5
-    if len(lines) < procs {
-        procs = len(lines)
-    }
 
-    s_procs = make([]Proc, procs, procs)
+    proc_list := make(map[string]float64)
 
-    for i := 0; i < procs; i++ {
-        line := lines[len(lines) - i - 2]
+    for _, line := range lines {
         fields := strings.Fields(line)
-        percentage,_ := strconv.ParseFloat(fields[1], 64)
-        s_procs[i] = Proc{fields[0], float32(percentage)}
+        if len(fields) == 2 {
+            name := fields[0]
+            percentage, _ := strconv.ParseFloat(fields[1], 64)
+            if _,ok := proc_list[name]; !ok && percentage != 0 {
+                proc_list[name] = 0
+            } 
+            if percentage != 0 {
+                proc_list[name] += percentage
+            }
+            
+        }
     }
+
+    s_procs = make([]Proc, len(proc_list), len(proc_list))
+    i := 0
+    for name, percentage := range proc_list {
+        s_procs[i] = Proc{name, float32(percentage)}
+        i++
+    }
+    sort.Sort(ByPerc(s_procs))
+    if len(s_procs) < count {
+        count = len(s_procs)
+    }
+
+    s_procs = s_procs[0:count]
     return 
 }

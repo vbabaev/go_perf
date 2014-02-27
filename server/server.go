@@ -14,6 +14,12 @@ import (
 	"time"
 )
 
+type packet struct {
+	type_ uint32
+	length uint32
+	message string
+}
+
 func read_int32(data []byte) (ret int32) {
 	buf := bytes.NewBuffer(data)
 	binary.Read(buf, binary.LittleEndian, &ret)
@@ -42,32 +48,32 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error on opening database connection: %s", err.Error())
 		}
-
-		tx, _ := db.Begin()
-		readBytes := 0
-		for readBytes < 8 {
-			sock.SetReadDeadline(time.Now().Add(5 * time.Second))
-			rlen, _, _ := sock.ReadFromUDP(buf[readBytes:])
-			readBytes += rlen
+		read := 0
+		
+		for read < 8 {
+			sock.SetReadDeadline(time.Now().Add(60 * time.Second))
+			rlen, _, _ := sock.ReadFromUDP(buf[read:])	
+			read += rlen
 		}
+
 		length := read_int32(buf[0:4])
 		type_ := read_int32(buf[4:8])
-
-		readBytes = 0
-		var message string = ""
-		for int32(readBytes) < length {
-			sock.SetReadDeadline(time.Now().Add(5 * time.Second))
-			rlen, _, _ := sock.ReadFromUDP(buf[readBytes:])
-			message += string(buf[:rlen])
-			readBytes += rlen
+		for read < (int(length) + 8) {
+			rlen, _, _ := sock.ReadFromUDP(buf[read:])	
+			read += rlen	
 		}
+		message := string(buf[8:(8+length)])
+
 		if type_ == 1 {
 			save_cpu(message, db)
 		}
 		if type_ == 2 {
 			save_mem(message, db)
 		}
-		tx.Commit()
+
+		if type_ == 3 {
+			save_procs(message, db)
+		}
 	}
 }
 
@@ -81,6 +87,24 @@ func save_cpu(raw string, db *sql.DB) {
 	}
 	stm.Exec(time, cpu)
 	defer stm.Close()
+}
+
+func save_procs(raw string, db *sql.DB) {
+	fields := strings.SplitN(raw, " ", 2)
+	time, _ := strconv.ParseUint(fields[0], 10, 64)
+	procs := strings.Split(fields[1], ";")
+	for i := 0; i < len(procs); i++ {
+		parts := strings.SplitN(procs[i], " ", 2)
+		if (len(parts) == 2) {
+			stm, err := db.Prepare("INSERT INTO proc (`time`, `proc`, `value`) VALUE(from_unixtime(?), ?, ?)")
+			if err != nil {
+				fmt.Println(err)
+			}
+			stm.Exec(time, parts[0], parts[1])
+			stm.Close()	
+		}
+	}
+
 }
 
 func save_mem(raw string, db *sql.DB) {

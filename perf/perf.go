@@ -68,7 +68,6 @@ func main() {
 	flag.IntVar(&port, "p", 30000, "server's port name")
 	flag.Parse()
 
-	stat.GetTopProcs()
 	routines := make([]*t_routine, 0, 20)
 	getCpuUsage := stat.GetCPUsageProvider()
 	time.Sleep(1 * time.Second)
@@ -87,7 +86,7 @@ func main() {
 	}
 
 	procs := func() {
-		p_procs := stat.GetTopProcs()
+		p_procs := stat.GetTopProcs(5)
 		var message string = ""
 		message += fmt.Sprintf("%s ", GetCurrentTimestamp())
 		for _, proc := range p_procs {
@@ -106,22 +105,22 @@ func main() {
 		}
 		con, err := net.DialUDP("udp", nil, serverAddr)
 
+		buf := make([]byte, 1024)
 		for pointer := report_list.head.next; pointer != report_list.tail; pointer = pointer.next {
 			report := linked_list_pop()
-			buf := make([]byte, 4)
-			binary.LittleEndian.PutUint32(buf, uint32(report.size))
-			con.Write(buf)
-			binary.LittleEndian.PutUint32(buf, uint32(report.type_))
-			con.Write(buf)
-			con.Write([]byte(report.text))
+			binary.LittleEndian.PutUint32(buf[0:4], uint32(report.size))
+			binary.LittleEndian.PutUint32(buf[4:8], uint32(report.type_))
+			copy(buf[8:], report.text)
+			send_len := 8 + len(report.text)
+			con.Write(buf[0:send_len])
 		}
 		con.Close()
 	}
 
-	routines = append(routines, runRoutineWithPeriod(cpu, 1*time.Second))
-	routines = append(routines, runRoutineWithPeriod(mem, 1*time.Second))
-	routines = append(routines, runRoutineWithPeriod(procs, 5*time.Second))
-	routines = append(routines, runRoutineWithPeriod(send, 1*time.Second))
+	routines = append(routines, runRoutineWithPeriod(cpu, 5 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(mem, 5 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(procs, 1 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(send, 1 * time.Second))
 
 	var status bool = true
 
@@ -131,7 +130,9 @@ func main() {
 		sig := <-signalChannel
 		switch sig {
 		case os.Interrupt:
+			status = false
 		case syscall.SIGHUP:
+			status = false
 		case syscall.SIGTERM:
 			status = false
 		}
