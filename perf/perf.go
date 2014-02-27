@@ -117,10 +117,10 @@ func main() {
 		con.Close()
 	}
 
-	routines = append(routines, runRoutineWithPeriod(cpu, 5 * time.Second))
-	routines = append(routines, runRoutineWithPeriod(mem, 5 * time.Second))
-	routines = append(routines, runRoutineWithPeriod(procs, 1 * time.Second))
-	routines = append(routines, runRoutineWithPeriod(send, 1 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(cpu, 1 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(mem, 1 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(procs, 5 * time.Second))
+	routines = append(routines, runRoutineWithPeriod(send, 45 * time.Second))
 
 	var status bool = true
 
