@@ -1,9 +1,8 @@
-package main
+package server
 
 import (
 	"../report"
 	"database/sql"
-	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
@@ -19,14 +18,8 @@ type packet struct {
 	message string
 }
 
-var host string
-var port int
-
-func main() {
-	flag.StringVar(&host, "h", "localhost", "server's hostname")
-	flag.IntVar(&port, "p", 30000, "server's port name")
-	flag.Parse()
-
+func Run(host string, port int) {
+	fmt.Println("SERV")
 	db, err := sql.Open("mysql", "root:123@/perf")
 	if err != nil {
 		return
@@ -68,6 +61,10 @@ func main() {
 			save_procs(r, db)
 		}
 	}
+}
+
+func Stop() {
+	
 }
 
 func save_cpu(r report.Report, db *sql.DB) {
