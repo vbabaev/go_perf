@@ -97,7 +97,7 @@ func main() {
 	routines = append(routines, routine.Create(cpu, time.Second))
 	routines = append(routines, routine.Create(mem, time.Second))
 	routines = append(routines, routine.Create(procs, 5 * time.Second))
-	routines = append(routines, routine.Create(send, 1 * time.Second))
+	routines = append(routines, routine.Create(send, 45 * time.Second))
 
 	for _, routine := range routines {
 		routine.Start()
