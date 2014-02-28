@@ -1,29 +1,29 @@
 package main
 
 import (
-	"../client"
-	"../server"
-	"flag"
-	"os"
-	"os/signal"
-	"syscall"
+    "../client"
+    "../server"
+    "flag"
+    "os"
+    "os/signal"
+    "syscall"
 )
 
 func main() {
-	var host string
-	var port int
-	var is_server bool
-	flag.StringVar(&host, "h", "localhost", "server's hostname")
-	flag.IntVar(&port, "p", 30000, "server's port name")
-	flag.BoolVar(&is_server, "S", false, "server type")
-	flag.Parse()
+    var host string
+    var port int
+    var is_server bool
+    flag.StringVar(&host, "h", "localhost", "server's hostname")
+    flag.IntVar(&port, "p", 30000, "server's port name")
+    flag.BoolVar(&is_server, "S", false, "server type")
+    flag.Parse()
 
-	if is_server {
-		server.Run(host, port)
-	} else {
-		client.Run(host, port)
-	}
-	
+    if is_server {
+        server.Run(host, port)
+    } else {
+        client.Run(host, port)
+    }
+    
     status := true
     for status {
         signalChannel := make(chan os.Signal, 2)
@@ -42,9 +42,9 @@ func main() {
         }
     }
 
-	if is_server {
-		server.Stop()
-	} else {
-		client.Stop()
-	}
+    if is_server {
+        server.Stop()
+    } else {
+        client.Stop()
+    }
 }
