@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
+	"../report"
 	"database/sql"
-	"encoding/binary"
 	"flag"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -18,12 +17,6 @@ type packet struct {
 	type_ uint32
 	length uint32
 	message string
-}
-
-func read_int32(data []byte) (ret int32) {
-	buf := bytes.NewBuffer(data)
-	binary.Read(buf, binary.LittleEndian, &ret)
-	return
 }
 
 var host string
@@ -43,6 +36,7 @@ func main() {
 	var buf [4096]byte
 	addr, _ := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 	sock, _ := net.ListenUDP("udp", addr)
+	header_size := report.GetHeaderSize()
 	for {
 		err = db.Ping()
 		if err != nil {
@@ -50,79 +44,76 @@ func main() {
 		}
 		read := 0
 		
-		for read < 8 {
+		for uint32(read) < header_size {
 			sock.SetReadDeadline(time.Now().Add(60 * time.Second))
 			rlen, _, _ := sock.ReadFromUDP(buf[read:])	
 			read += rlen
 		}
 
-		length := read_int32(buf[0:4])
-		type_ := read_int32(buf[4:8])
-		for read < (int(length) + 8) {
+		time, length, type_ := report.ParseHeader(buf[0:header_size])
+
+		for read < (int(length) + int(header_size)) {
 			rlen, _, _ := sock.ReadFromUDP(buf[read:])	
 			read += rlen	
 		}
-		message := string(buf[8:(8+length)])
+		r := report.Load(time, type_, buf[header_size:(header_size+length)])
 
-		if type_ == 1 {
-			save_cpu(message, db)
+		if type_ == report.TYPE_CPU {
+			save_cpu(r, db)
 		}
-		if type_ == 2 {
-			save_mem(message, db)
+		if type_ == report.TYPE_MEM {
+			save_mem(r, db)
 		}
-
-		if type_ == 3 {
-			save_procs(message, db)
+		if type_ == report.TYPE_PROC {
+			save_procs(r, db)
 		}
 	}
 }
 
-func save_cpu(raw string, db *sql.DB) {
-	fields := strings.Fields(raw)
-	time, _ := strconv.ParseUint(fields[0], 10, 64)
-	cpu, _ := strconv.ParseFloat(fields[1], 64)
+func save_cpu(r report.Report, db *sql.DB) {
+	cpu, _ := strconv.ParseFloat(r.Text(), 64)
 	stm, err := db.Prepare("INSERT INTO cpu (`time`, `value`) VALUE(from_unixtime(?), ?)")
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
-	stm.Exec(time, cpu)
+	stm.Exec(r.Time(), cpu)
 	defer stm.Close()
 }
 
-func save_procs(raw string, db *sql.DB) {
-	fields := strings.SplitN(raw, " ", 2)
-	time, _ := strconv.ParseUint(fields[0], 10, 64)
-	procs := strings.Split(fields[1], ";")
+func save_procs(r report.Report, db *sql.DB) {
+	procs := strings.Split(r.Text(), ";")
+	stm, err := db.Prepare("INSERT INTO proc (`time`, `proc`, `value`) VALUE(from_unixtime(?), ?, ?)")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	for i := 0; i < len(procs); i++ {
 		parts := strings.SplitN(procs[i], " ", 2)
 		if (len(parts) == 2) {
-			stm, err := db.Prepare("INSERT INTO proc (`time`, `proc`, `value`) VALUE(from_unixtime(?), ?, ?)")
-			if err != nil {
-				fmt.Println(err)
-			}
-			stm.Exec(time, parts[0], parts[1])
-			stm.Close()	
+			stm.Exec(r.Time(), parts[0], parts[1])
 		}
 	}
+	stm.Close()	
 
 }
 
-func save_mem(raw string, db *sql.DB) {
-	fields := strings.Fields(raw)
-	time, _ := strconv.ParseUint(fields[0], 10, 64)
-	mem, _ := strconv.ParseFloat(fields[1], 64)
-	swap, _ := strconv.ParseFloat(fields[2], 64)
+func save_mem(r report.Report, db *sql.DB) {
+	fields := strings.Fields(r.Text())
+	mem, _ := strconv.ParseFloat(fields[0], 64)
+	swap, _ := strconv.ParseFloat(fields[1], 64)
+
 	stm, err := db.Prepare("INSERT INTO mem (`time`, `value`) VALUE(from_unixtime(?), ?)")
 	if err != nil {
 		fmt.Println(err)
 	}
-	stm.Exec(time, mem)
+	stm.Exec(r.Time(), mem)
 	stm.Close()
 
 	stm, err = db.Prepare("INSERT INTO swap (`time`, `value`) VALUE(from_unixtime(?), ?)")
 	if err != nil {
 		fmt.Println(err)
 	}
-	stm.Exec(time, swap)
+	stm.Exec(r.Time(), swap)
 	stm.Close()
 }

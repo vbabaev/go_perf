@@ -27,7 +27,7 @@ func GetCPUsageProvider() (func() float64) {
         idle1, total1 := GetCPU() 
         idleTicks := float64(idle1 - idle0)
         totalTicks := float64(total1 - total0)
-        cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
+        cpuUsage := (totalTicks - idleTicks) / totalTicks
         idle0 = idle1
         total0 = total1
         return cpuUsage
