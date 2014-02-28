@@ -44,6 +44,12 @@ func Run(host string, port int) {
         report_list.PushBack(report)
     }
 
+    io := func() {
+        iops := stat.GetIO()
+        report := report.Create(report.TYPE_IO, fmt.Sprintf("%d", iops))
+        report_list.PushBack(report)
+    }
+
     send := func() {
         serverAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", host, port))
 
@@ -65,6 +71,7 @@ func Run(host string, port int) {
     routines = append(routines, routine.Create(cpu, time.Second))
     routines = append(routines, routine.Create(mem, time.Second))
     routines = append(routines, routine.Create(procs, 5 * time.Second))
+    routines = append(routines, routine.Create(io, time.Second))
     routines = append(routines, routine.Create(send, 45 * time.Second))
 
     for _, routine := range routines {

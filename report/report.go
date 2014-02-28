@@ -11,6 +11,7 @@ const (
     TYPE_CPU = iota
     TYPE_MEM = iota
     TYPE_PROC = iota
+    TYPE_IO = iota
 )
 
 type (

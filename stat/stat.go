@@ -91,6 +91,17 @@ func GetMem() (total, free, swap_total, swap_free, cached uint64) {
     return
 }
 
+func GetIO() (iops uint64) {
+    iops = 0
+    contents, err := ioutil.ReadFile("/sys/block/sda/stat")
+    if err != nil {
+        return
+    }
+    fields := strings.Fields(string(contents))
+    iops, err = strconv.ParseUint(fields[8], 10, 64)
+    return 
+}
+
 func GetTopProcs(count int) (s_procs []Proc) {
     cmd := exec.Command("/bin/ps", "hx", "-ocomm,pcpu", "--sort=pcpu")
     cmd.Stdin = strings.NewReader("some input")

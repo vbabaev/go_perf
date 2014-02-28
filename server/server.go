@@ -59,6 +59,9 @@ func Run(host string, port int) {
         if type_ == report.TYPE_PROC {
             save_procs(r, db)
         }
+        if type_ == report.TYPE_IO {
+            save_io(r, db)
+        }
     }
 }
 
@@ -74,6 +77,17 @@ func save_cpu(r report.Report, db *sql.DB) {
         return
     }
     stm.Exec(r.Time(), cpu)
+    defer stm.Close()
+}
+
+func save_io(r report.Report, db *sql.DB) {
+    io, _ := strconv.ParseInt(r.Text(), 10, 64)
+    stm, err := db.Prepare("INSERT INTO io (`time`, `value`) VALUE(from_unixtime(?), ?)")
+    if err != nil {
+        fmt.Println(err)
+        return
+    }
+    stm.Exec(r.Time(), io)
     defer stm.Close()
 }
 
